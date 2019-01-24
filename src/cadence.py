@@ -596,6 +596,9 @@ class ForceRestartThread(QThread):
             else:
                 os.system("cadence-pulse2jack")
 
+        if GlobalSettings.value("NSM/AutoStart", False, type=bool) and not gNsmClient.isAvailable():
+            gNsmClient.start()
+
         self.progressChanged.emit(100)
 
 # Force Restart Dialog
@@ -645,8 +648,14 @@ class ToolBarJackDialog(QDialog, ui_cadence_tb_jack.Ui_Dialog):
             self.rb_ladish.setEnabled(False)
             self.rb_jack.setChecked(True)
 
+        if GlobalSettings.value("NSM/AutoLoadSession", False, type=bool):
+            self.rb_nsm.setChecked(True)
+
         if self.m_ladishLoaded:
             self.fillStudioNames()
+
+        if gNsmClient.isAvailable():
+            self.fillNsmNames()
 
         self.accepted.connect(self.slot_setOptions)
         self.rb_ladish.clicked.connect(self.slot_maybeFillStudioNames)
@@ -668,6 +677,20 @@ class ToolBarJackDialog(QDialog, ui_cadence_tb_jack.Ui_Dialog):
                     self.cb_studio_name.setCurrentIndex(i)
                 i += 1
 
+    def fillNsmNames(self):
+        nsmSessionName = GlobalSettings.value("NSM/SessionName", "", type=str)
+        nsmSessionList = gNsmClient.getSessions()
+
+        if len(nsmSessionList) == 0:
+            self.rb_nsm.setEnabled(False)
+        else:
+            i = 0
+            for thisSessionName in nsmSessionList:
+                self.cb_nsm_session_name.addItem(thisSessionName)
+                if nsmSessionName and thisSessionName == nsmSessionName:
+                    self.cb_nsm_session_name.setCurrentIndex(i)
+                i += 1
+
     @pyqtSlot()
     def slot_maybeFillStudioNames(self):
         if not self.m_ladishLoaded:
@@ -677,7 +700,9 @@ class ToolBarJackDialog(QDialog, ui_cadence_tb_jack.Ui_Dialog):
     @pyqtSlot()
     def slot_setOptions(self):
         GlobalSettings.setValue("JACK/AutoLoadLadishStudio", self.rb_ladish.isChecked())
+        GlobalSettings.setValue("NSM/AutoLoadSession", self.rb_nsm.isChecked())
         GlobalSettings.setValue("JACK/LadishStudioName", self.cb_studio_name.currentText())
+        GlobalSettings.setValue("NSM/SessionName", self.cb_nsm_session_name.currentText())
 
     def done(self, r):
         QDialog.done(self, r)
@@ -1149,6 +1174,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         self.b_jack_restart.clicked.connect(self.slot_JackServerForceRestart)
         self.b_jack_configure.clicked.connect(self.slot_JackServerConfigure)
         self.b_jack_switchmaster.clicked.connect(self.slot_JackServerSwitchMaster)
+        self.b_nsm_start.clicked.connect(self.slot_NsmStart)
         self.tb_jack_options.clicked.connect(self.slot_JackOptions)
 
         self.b_alsa_start.clicked.connect(self.slot_AlsaBridgeStart)
@@ -1715,6 +1741,10 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
             return
 
         self.jackStarted()
+
+    @pyqtSlot()
+    def slot_NsmStart(self):
+        gNsmClient.start()
 
     @pyqtSlot()
     def slot_JackOptions(self):
@@ -2311,6 +2341,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         self.settings.setValue("Geometry", self.saveGeometry())
 
         GlobalSettings.setValue("JACK/AutoStart", self.cb_jack_autostart.isChecked())
+        GlobalSettings.setValue("NSM/AutoStart", self.cb_nsm_autostart.isCheckable())
         GlobalSettings.setValue("ALSA-Audio/BridgeIndexType", self.cb_alsa_type.currentIndex())
         GlobalSettings.setValue("A2J/AutoStart", self.cb_a2j_autostart.isChecked())
         GlobalSettings.setValue("Pulse2JACK/AutoStart", (havePulseAudio and self.cb_pulse_autostart.isChecked()))
@@ -2322,6 +2353,7 @@ class CadenceMainW(QMainWindow, ui_cadence.Ui_CadenceMainW):
         usingAlsaLoop = bool(GlobalSettings.value("ALSA-Audio/BridgeIndexType", iAlsaFileNone, type=int) == iAlsaFileLoop)
 
         self.cb_jack_autostart.setChecked(GlobalSettings.value("JACK/AutoStart", wantJackStart, type=bool))
+        self.cb_nsm_autostart.setChecked(GlobalSettings.value("NSM/AutoStart", False, type=bool))
         self.cb_a2j_autostart.setChecked(GlobalSettings.value("A2J/AutoStart", True, type=bool))
         self.cb_pulse_autostart.setChecked(GlobalSettings.value("Pulse2JACK/AutoStart", havePulseAudio and not usingAlsaLoop, type=bool))
 

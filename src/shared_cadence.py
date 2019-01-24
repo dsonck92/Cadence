@@ -30,6 +30,7 @@ else:
 # Imports (Custom Stuff)
 
 from shared import *
+from nsm_session_client import *
 
 # ------------------------------------------------------------------------------------------------------------
 # Default Plugin PATHs
@@ -76,6 +77,12 @@ GlobalSettings = QSettings("Cadence", "GlobalSettings")
 # KXStudio Check
 
 wantJackStart = os.path.exists("/usr/share/kxstudio/config/config/Cadence/GlobalSettings.conf")
+
+# ------------------------------------------------------------------------------------------------------------
+# NSM Stuff
+
+gNsmClient = NSMClient()
+gNsmClient.check()
 
 # ------------------------------------------------------------------------------------------------------------
 # Get Process list

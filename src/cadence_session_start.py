@@ -118,6 +118,13 @@ def startSession(systemStarted, secondSystemStartAttempt):
     else:
         startJack()
 
+        if GlobalSettings.value("NSM/AutoStart", False, type=bool):
+            gNsmClient.start()
+
+        if gNsmClient.isAvailable() and GlobalSettings.value("NSM/AutoLoadSession", False, type=bool):
+                gNsmClient.startSession(GlobalSettings.value("NSM/SessionName", "", type=str))
+
+
     if not bool(DBus.jack.IsStarted()):
         print("JACK Failed to Start")
         return False
