@@ -404,28 +404,30 @@ class JackSettingsW(QDialog):
             elif attribute == "alias":
                 self.ui.obj_server_alias.setChecked(bool(value))
             elif attribute == "client-timeout":
-                self.setComboBoxValue(self.ui.obj_server_client_timeout, str(value))
+                self.setComboBoxValue(self.ui.obj_server_client_timeout, str(int(value)))
             elif attribute == "clock-source":
-                value = str(value)
-                if value == "c":
-                    self.ui.obj_server_clock_source_cycle.setChecked(True)
-                elif value == "h":
-                    self.ui.obj_server_clock_source_hpet.setChecked(True)
-                elif value == "s":
-                    self.ui.obj_server_clock_source_system.setChecked(True)
-                else:
-                    self.fBrokenServerClockSource = True
-                    if value == str(JACK_TIMER_SYSTEM_CLOCK):
-                        self.ui.obj_server_clock_source_system.setChecked(True)
-                    elif value == str(JACK_TIMER_CYCLE_COUNTER):
+                if len(str(value)) == 1 :
+                    value = str(value)
+                    if value == "c":
                         self.ui.obj_server_clock_source_cycle.setChecked(True)
-                    elif value == str(JACK_TIMER_HPET):
+                    elif value == "h":
+                        self.ui.obj_server_clock_source_hpet.setChecked(True)
+                    elif value == "s":
+                        self.ui.obj_server_clock_source_system.setChecked(True)
+                else:
+                    value = int(value)
+                    self.fBrokenServerClockSource = True
+                    if value == JACK_TIMER_SYSTEM_CLOCK:
+                        self.ui.obj_server_clock_source_system.setChecked(True)
+                    elif value == JACK_TIMER_CYCLE_COUNTER:
+                        self.ui.obj_server_clock_source_cycle.setChecked(True)
+                    elif value == JACK_TIMER_HPET:
                         self.ui.obj_server_clock_source_hpet.setChecked(True)
                     else:
                         self.ui.obj_server_clock_source.setEnabled(False)
                         print("JackSettingsW::saveServerSettings() - Invalid clock-source value '%s'" % value)
             elif attribute == "port-max":
-                self.setComboBoxValue(self.ui.obj_server_port_max, str(value))
+                self.setComboBoxValue(self.ui.obj_server_port_max, str(int(value)))
             elif attribute == "replace-registry":
                 self.ui.obj_server_replace_registry.setChecked(bool(value))
             elif attribute == "sync":
@@ -627,17 +629,21 @@ class JackSettingsW(QDialog):
             elif attribute == "capture":
                 if self.fDriverName == "firewire":
                     self.ui.obj_driver_capture.setCurrentIndex(1 if bool(value) else 0)
+                elif self.fDriverName == "dummy":
+                    self.setComboBoxValue(self.ui.obj_driver_capture, str(int(value)), True)
                 else:
                     self.setComboBoxValue(self.ui.obj_driver_capture, str(value), True)
             elif attribute == "playback":
                 if self.fDriverName == "firewire":
                     self.ui.obj_driver_playback.setCurrentIndex(1 if bool(value) else 0)
+                elif self.fDriverName == "dummy":
+                    self.setComboBoxValue(self.ui.obj_driver_playback, str(int(value)), True)
                 else:
                     self.setComboBoxValue(self.ui.obj_driver_playback, str(value), True)
             elif attribute == "rate":
-                self.setComboBoxValue(self.ui.obj_driver_rate, str(value))
+                self.setComboBoxValue(self.ui.obj_driver_rate, str(int(value)))
             elif attribute == "period":
-                self.setComboBoxValue(self.ui.obj_driver_period, str(value))
+                self.setComboBoxValue(self.ui.obj_driver_period, str(int(value)))
             elif attribute == "nperiods":
                 self.ui.obj_driver_nperiods.setValue(int(value))
             elif attribute == "hwmon":
@@ -700,10 +706,12 @@ class JackSettingsW(QDialog):
     # -----------------------------------------------------------------
     # Helper functions
 
-    def getAlsaDeviceList(self):
+    def getAlsaDeviceList(self, playback=True):
         alsaDeviceList = []
 
-        aplay_out = getoutput("env LANG=C LC_ALL=C aplay -l").split("\n")
+        executable = 'aplay' if playback else 'arecord'
+
+        aplay_out = getoutput("env LANG=C LC_ALL=C {} -l".format(executable)).split("\n")
         for line in aplay_out:
             line = line.strip()
             if line.startswith("card "):
@@ -786,10 +794,12 @@ class JackSettingsW(QDialog):
             self.ui.obj_driver_playback.addItem("none")
 
             if LINUX:
-                dev_list = self.getAlsaDeviceList()
-                for dev in dev_list:
-                    self.ui.obj_driver_capture.addItem(dev)
+                dev_list_playback = self.getAlsaDeviceList(playback=True)
+                dev_list_record = self.getAlsaDeviceList(playback=False)
+                for dev in dev_list_playback:
                     self.ui.obj_driver_playback.addItem(dev)
+                for dev in dev_list_record:
+                    self.ui.obj_driver_capture.addItem(dev)
             else:
                 dev_list = gJackctl.GetParameterConstraint(["driver", "device"])[3]
                 for i in range(len(dev_list)):

@@ -51,16 +51,7 @@ try:
     from dbus.mainloop.pyqt5 import DBusQtMainLoop
     haveDBus = True
 except:
-    kxstudioWorkaround = "/opt/kxstudio/python3/dist-packages/dbus/mainloop"
-    if os.path.exists(kxstudioWorkaround):
-        try:
-            sys.path.insert(1, kxstudioWorkaround)
-            from pyqt5 import DBusQtMainLoop
-            haveDBus = True
-        except:
-            haveDBus = False
-    else:
-        haveDBus = False
+    haveDBus = False
 
 # ------------------------------------------------------------------------------------------------------------
 # Try Import OpenGL
@@ -1524,7 +1515,7 @@ class ClaudiaMainW(AbstractCanvasJackClass):
         if not gDBus.jack.IsStarted():
             self.ui.act_tools_a2j_start.setEnabled(False)
             self.ui.act_tools_a2j_stop.setEnabled(False)
-            self.ui.act_tools_a2j_export_hw.setEnabled(gDBus.a2j and not gDBus.a2j.is_started())
+            self.ui.act_tools_a2j_export_hw.setEnabled(bool(gDBus.a2j) and not gDBus.a2j.is_started())
         else:
             self.ui.act_tools_a2j_start.setEnabled(not started)
             self.ui.act_tools_a2j_stop.setEnabled(started)
